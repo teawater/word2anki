@@ -23,128 +23,151 @@ def ensure_unicode(v):
     return unicode(v)
 
 
-def pinyin_array_to_utf8(pinyin_array):
-    ret = ''
-    is_first = True
-    for pinyin in pinyin_array:
-        if len(pinyin) != 1:
-            ret = ''
-            break
-        if is_first:
-            is_first = False
-        else:
-            ret += " "
-        ret += pinyin[0]
-    return ret.encode('utf8')
+class AndiPinyin:
+    def __init__(self, word, url=None):
+        self.right = ""
+        self.url_pinyin = ""
+        self.heteronym_pinyin = ""
 
+        pinyin_array = pypinyin.pinyin(word, heteronym=True)
 
-def yinjie(word, url=None):
-    pinyin_array = pypinyin.pinyin(word, heteronym=True)
-
-    ret = pinyin_array_to_utf8(pinyin_array)
-    if ret != "":
-        return ret, False, ""
-    if url == None:
-        return ret, True, ""
-
-    if args.debug:
-        for pinyin_array_one in pinyin_array:
-            print "|".join(pinyin_array_one)
-        print "Got heteronym and try to handle it"
-
-    time.sleep(1)
-    contents = urllib2.urlopen(url).read()
-
-    ret_list = []
-    maybe_wrong_list = []
-    for url_pinyin in re.findall(r'\[(.+)\]', contents):
-        # Check one [ xxx xxx ] from url
-        url_pinyin = url_pinyin.strip()
-        url_pinyin = url_pinyin.split(" ")
-        if len(url_pinyin) != len(pinyin_array):
-            continue
-        got = False
-        for up in url_pinyin:
-            string = "~!@#$%^&*()_+-*/<>,.[]\/"
-            for i in string:
-                if i in up:
-                    got = True
-                    break
-            if got:
-                break
-        if got:
-            continue
+        self.pinyin_array_to_utf8(pinyin_array)
+        if self.right != "":
+            return
+        if url == None:
+            return
 
         if args.debug:
-            print "Got url pinyin", " ".join(url_pinyin)
+            print "Got heteronym and try to handle it", self.heteronym_pinyin
 
-        # Set ret
-        is_first = True
-        line = ""
-        for i in range(len(url_pinyin)):
-            # Check each word in [ xxx xxx ]
-            new_pinyin = ""
-            for pinyin_array_one in pinyin_array[i]:
-                if pinyin_array_one.encode('utf8') == url_pinyin[i]:
-                    new_pinyin = url_pinyin[i]
+        time.sleep(1)
+        contents = urllib2.urlopen(url).read()
+
+        right_list = []
+        url_list = []
+        for url_pinyin in re.findall(r'\[(.+)\]', contents):
+            # Check one [ xxx xxx ] from url
+            url_pinyin = url_pinyin.strip()
+            url_pinyin = url_pinyin.split(" ")
+            if len(url_pinyin) != len(pinyin_array):
+                continue
+            got = False
+            for up in url_pinyin:
+                string = "~!@#$%^&*()_+-*/<>,.[]\/"
+                for i in string:
+                    if i in up:
+                        got = True
+                        break
+                if got:
                     break
-            if new_pinyin == "":
-                line = ""
-                break
+            if got:
+                continue
+
+            if args.debug:
+                print "Got url pinyin", " ".join(url_pinyin)
+
+            # Set ret
+            is_first = True
+            line = ""
+            for i in range(len(url_pinyin)):
+                # Check each word in [ xxx xxx ]
+                new_pinyin = ""
+                for pinyin_array_one in pinyin_array[i]:
+                    if pinyin_array_one.encode('utf8') == url_pinyin[i]:
+                        new_pinyin = url_pinyin[i]
+                        break
+                if new_pinyin == "":
+                    line = ""
+                    break
+                if is_first:
+                    is_first = False
+                else:
+                    line += " "
+                line += new_pinyin
+
+            if line != "":
+                # Check if there is same line in right_list
+                need_apply = True
+                for right_list_one in right_list:
+                    if line == right_list_one:
+                        need_apply = False
+                if need_apply:
+                    right_list.append(line)
+
+            # Set url_list
+            upinyin = " ".join(url_pinyin)
+            # Check if there is same line in url_list
+            need_apply = True
+            for one in url_list:
+                if upinyin == one:
+                    need_apply = False
+            if need_apply:
+                if args.debug:
+                    print "Got url pinyin", upinyin
+                url_list.append(upinyin)
+
+        self.right = "或".join(right_list)
+        self.url_pinyin = "或".join(url_list)
+
+    def pinyin_array_to_utf8(self, pinyin_array):
+        self.right = ""
+        self.heteronym_pinyin = ""
+
+        is_first = True
+        have_heteronym = False
+
+        for pinyin in pinyin_array:
+            if len(pinyin) != 1:
+                self.right = ''
+                have_heteronym = True
             if is_first:
                 is_first = False
             else:
-                line += " "
-            line += new_pinyin
+                if not have_heteronym:
+                    self.right += " "
+                self.heteronym_pinyin += " "
+            if not have_heteronym:
+                self.right += pinyin[0]
+            self.heteronym_pinyin += "|".join(pinyin)
+        self.right = self.right.encode('utf8')
+        self.heteronym_pinyin = self.heteronym_pinyin.encode('utf8')
 
-        if line == "":
-            if len(ret_list) == 0:
-                # Set maybe_wrong_list
-                maybe_wrong = " ".join(url_pinyin)
-                # Check if there is same line in maybe_wrong_list
-                need_apply = True
-                for one in maybe_wrong_list:
-                    if maybe_wrong == one:
-                        need_apply = False
-                if need_apply:
-                    if args.debug:
-                        print "Got maybe wrong pinyin", maybe_wrong
-                    maybe_wrong_list.append(maybe_wrong)
-        else:
-            # Check if there is same line in ret_list
-            need_apply = True
-            for ret_list_one in ret_list:
-                if line == ret_list_one:
-                    need_apply = False
-            if need_apply:
-                ret_list.append(line)
-
-    return "或".join(ret_list), len(ret_list) == 0, "或".join(maybe_wrong_list)
 
 if args.debug:
-    pinyin, got_heteronym, maybe_wrong = yinjie(ensure_unicode(
+    print "呈现"
+    p = AndiPinyin(ensure_unicode(
         "呈现"), 'https://hanyu.baidu.com/s?wd=' + urllib.quote("呈现") + '&amp;from=zici')
-    print pinyin
-    print got_heteronym
-    print maybe_wrong
+    print p.right
+    print p.url_pinyin
+    print p.heteronym_pinyin
 
-    pinyin, got_heteronym, maybe_wrong = yinjie(ensure_unicode(
+    print "长大"
+    p = AndiPinyin(ensure_unicode(
         "长大"), 'https://hanyu.baidu.com/s?wd=' + urllib.quote("长大") + '&amp;from=zici')
-    print pinyin
-    print got_heteronym
-    print maybe_wrong
+    print p.right
+    print p.url_pinyin
+    print p.heteronym_pinyin
 
-    pinyin, got_heteronym, maybe_wrong = yinjie(ensure_unicode(
+    print "冰激凌"
+    p = AndiPinyin(ensure_unicode(
         "冰激凌"), 'https://hanyu.baidu.com/s?wd=' + urllib.quote("冰激凌") + '&amp;from=zici')
-    print pinyin
-    print got_heteronym
-    print maybe_wrong
+    print p.right
+    print p.url_pinyin
+    print p.heteronym_pinyin
 
-    pinyin, got_heteronym, maybe_wrong = yinjie(ensure_unicode(
+    print "扑腾"
+    p = AndiPinyin(ensure_unicode(
         "扑腾"), 'https://hanyu.baidu.com/s?wd=' + urllib.quote("扑腾") + '&amp;from=zici')
-    print pinyin
-    print got_heteronym
-    print maybe_wrong
+    print p.right
+    print p.url_pinyin
+    print p.heteronym_pinyin
+
+    print "好主意"
+    p = AndiPinyin(ensure_unicode(
+        "好主意"), 'https://hanyu.baidu.com/s?wd=' + urllib.quote("好主意") + '&amp;from=zici')
+    print p.right
+    print p.url_pinyin
+    print p.heteronym_pinyin
 
     exit(0)
 
@@ -162,15 +185,20 @@ for word in open(args.word):
         continue
     url_word = urllib.quote(word)
     baidu_url = 'https://hanyu.baidu.com/s?wd=' + url_word + '&amp;from=zici'
-    pinyin, got_heteronym, maybe_wrong = yinjie(ensure_unicode(word), baidu_url)
+    p = AndiPinyin(
+        ensure_unicode(word), baidu_url)
 
-    if got_heteronym:
+    pinyin = ''
+    if p.right == "":
         heteronym = True
-        if maybe_wrong != "":
-            pinyin = maybe_wrong
+        if p.url_pinyin != "":
+            pinyin = p.url_pinyin
+            print "处理", word, "拼音是", pinyin, "可能有问题，注意检查。"
         else:
-            pinyin = "多音字"
-        print "处理", word, "拼音是", pinyin, "可能有问题，注意检查。"
+            pinyin = "多音字" + p.heteronym_pinyin
+            print "处理", word, pinyin, "失败，请手动处理。"
+    else:
+        pinyin = p.right
 
     line = "<h2><b>" + pinyin + "</b></h2>\t"
     line += '"' + word
