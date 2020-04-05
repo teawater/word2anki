@@ -158,6 +158,8 @@ out = open(args.out, "w")
 heteronym = False
 for word in open(args.word):
     word = word.strip()
+    if word == "":
+        continue
     url_word = urllib.quote(word)
     baidu_url = 'https://hanyu.baidu.com/s?wd=' + url_word + '&amp;from=zici'
     pinyin, got_heteronym, maybe_wrong = yinjie(ensure_unicode(word), baidu_url)
