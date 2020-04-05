@@ -1,1 +1,3 @@
-# word2anki
+```
+pip install pypinyin
+```
