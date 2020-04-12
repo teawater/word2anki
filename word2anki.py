@@ -181,7 +181,7 @@ out = open(args.out, "w")
 heteronym = False
 for word in open(args.word):
     word = word.strip()
-    if word == "":
+    if word == "" or word[0] == '#':
         continue
     url_word = urllib.quote(word)
     baidu_url = 'https://hanyu.baidu.com/s?wd=' + url_word + '&amp;from=zici'
