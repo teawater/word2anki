@@ -201,10 +201,12 @@ for word in open(args.word):
         pinyin = p.right
 
     line = "<h2><b>" + pinyin + "</b></h2>\t"
-    line += '"' + word + '<div>'
+    line += '"' + word
+    line += '<div>'
     unicode_word = ensure_unicode(word)
     for single in unicode_word:
         line += '<img src=""' + urllib.quote(single.encode('utf8')) + '.gif"">'
+    line += '<br></div>'
     line += '<div><a href=""http://bishun.shufaji.com/?char=' + \
         url_word + '"">笔顺</a><br></div>'
     line += '<div><a href=""' + baidu_url + '"">解释</a><br></div>"'
