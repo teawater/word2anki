@@ -1,0 +1,53 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+
+import optparse
+import os
+import urllib
+import urllib2
+import re
+
+parser = optparse.OptionParser()
+parser.add_option("-w", "--word", dest="word",
+                  help="word file")
+parser.add_option("-o", "--out", action="store",
+                  type="string", default="./out")
+args = parser.parse_args()[0]
+
+if args.word == None:
+    parser.error("option --word must set")
+if not os.path.exists(args.out):
+    os.makedirs(args.out)
+elif os.path.isfile(args.out):
+    parser.error("option --out should set a directory")
+
+print "从文件", args.word, "读入词语"
+print "文件存入目录", args.out
+
+def ensure_unicode(v):
+    if isinstance(v, str):
+        v = v.decode('utf8')
+    return unicode(v)
+
+for line in open(args.word):
+    line = line.strip()
+    if line == "" or line[0] == '#':
+        continue
+    line = ensure_unicode(line)
+    for word in line:
+        print "取得", word, "的图片"
+        utf8_word = word.encode('utf8')
+        url_word = urllib.quote(utf8_word)
+        pic_dir = os.path.join(args.out, url_word + ".gif")
+
+        if os.path.exists(pic_dir):
+            print word, "的文件已经存在"
+            continue
+
+        contents = urllib2.urlopen("http://bishun.strokeorder.info/mandarin.php?q="+url_word).read()
+        searchObj = re.search( r'\<img src=\"(http:\/\/bishun\.strokeorder\.info\/characters\/\d+\.gif)\" alt\=\"' + utf8_word + r'的笔顺\"\>', contents)
+        if searchObj == None:
+            print "没有找到", word, "的图片"
+            continue
+        pic_url = searchObj.group(1)
+        urllib.urlretrieve(pic_url, pic_dir)
