@@ -45,7 +45,7 @@ for line in open(args.word):
             continue
 
         contents = urllib2.urlopen("http://bishun.strokeorder.info/mandarin.php?q="+url_word).read()
-        searchObj = re.search( r'\<img src=\"(http:\/\/bishun\.strokeorder\.info\/characters\/\d+\.gif)\" alt\=\"' + utf8_word + r'的笔顺\"\>', contents)
+        searchObj = re.search(r'\<img src=\"(http:\/\/bishun\.strokeorder\.info\/characters\/\d+\.gif)\" alt\=\"' + utf8_word + r'的笔顺\"\>', contents)
         if searchObj == None:
             print "没有找到", word, "的图片"
             continue
