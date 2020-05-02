@@ -6,6 +6,8 @@ import os
 import urllib
 import urllib2
 import re
+import random
+import time
 
 parser = optparse.OptionParser()
 parser.add_option("-w", "--word", dest="word",
@@ -29,6 +31,7 @@ def ensure_unicode(v):
         v = v.decode('utf8')
     return unicode(v)
 
+fail_words = []
 for line in open(args.word):
     line = line.strip()
     if line == "" or line[0] == '#':
@@ -44,10 +47,22 @@ for line in open(args.word):
             print word, "的文件已经存在"
             continue
 
-        contents = urllib2.urlopen("http://bishun.strokeorder.info/mandarin.php?q="+url_word).read()
+        try:
+            contents = urllib2.urlopen("http://bishun.strokeorder.info/mandarin.php?q="+url_word).read()
+        except:
+            fail_words.append((word, url_word))
+            print word, "下载失败"
+            continue
         searchObj = re.search(r'\<img src=\"(http:\/\/bishun\.strokeorder\.info\/characters\/\d+\.gif)\" alt\=\"' + utf8_word + r'的笔顺\"\>', contents)
         if searchObj == None:
+            fail_words.append((word, url_word))
             print "没有找到", word, "的图片"
             continue
         pic_url = searchObj.group(1)
         urllib.urlretrieve(pic_url, pic_dir)
+        time.sleep(random.randint(1,3))
+
+if len(fail_words) > 0:
+    print "这些字下载失败"
+    for w in fail_words:
+        print w[0], w[1]
