@@ -36,7 +36,6 @@ for raw_line in open(args.anki):
         print raw_line, "格式不对"
         continue
 
-    #a = ensure_unicode(str(searchObj.group(1)))
     out.write(searchObj.group(1))
     out.write("\n")
 out.close()
