@@ -7,7 +7,6 @@ import urllib
 import urllib2
 import re
 import time
-import codecs
 
 parser = optparse.OptionParser()
 parser.add_option("-a", "--anki", dest="anki",
@@ -21,21 +20,24 @@ def ensure_unicode(v):
         v = v.decode('utf8')
     return unicode(v)
 
-out = codecs.open(args.out, "w", 'utf8')
+fail_lines = []
+out = open(args.out, "w")
 for raw_line in open(args.anki):
     raw_line = raw_line.strip()
     if raw_line == "" or raw_line[0] == '#':
         continue
-    line = raw_line.split("\t")
-    if len(line) < 2:
-        print raw_line, "格式不对"
-    line = ensure_unicode(line[1])
 
-    searchObj = re.search(u'^\"([\u4e00-\u9fa5]+)\<div\>', line)
+    searchObj = re.search(r'\t\"(\W+)\<div\>', raw_line)
     if searchObj == None:
-        print raw_line, "格式不对"
+        fail_lines.append(raw_line)
         continue
 
     out.write(searchObj.group(1))
     out.write("\n")
+
 out.close()
+if len(fail_lines) > 0:
+    print "这些行处理失败"
+    for line in fail_lines:
+        print line
+
