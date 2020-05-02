@@ -15,6 +15,9 @@ parser.add_option("-o", "--out", action="store",
                   type="string", default="./word.txt")
 args = parser.parse_args()[0]
 
+if args.anki == None:
+    parser.error("option --anki must set")
+
 def ensure_unicode(v):
     if isinstance(v, str):
         v = v.decode('utf8')
