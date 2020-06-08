@@ -60,6 +60,7 @@ for line in open(args.word):
             continue
         pic_url = searchObj.group(1)
         urllib.urlretrieve(pic_url, pic_dir)
+        print pic_dir
         time.sleep(random.randint(1,3))
 
 if len(fail_words) > 0:
