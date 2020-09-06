@@ -13,6 +13,7 @@ parser.add_option("-w", "--word", dest="word",
                   help="word file")
 parser.add_option("-o", "--out", action="store",
                   type="string", default="./out.txt")
+parser.add_option("-p", "--pinyin", action="store_true", default=False)
 parser.add_option("-d", "--debug", action="store_true", default=False)
 args = parser.parse_args()[0]
 
@@ -200,13 +201,18 @@ for word in open(args.word):
     else:
         pinyin = p.right
 
-    line = "<h2><b>" + pinyin + "</b></h2>\t"
-    line += '"' + word
-    line += '<div>'
-    unicode_word = ensure_unicode(word)
-    for single in unicode_word:
-        line += '<img src=""' + urllib.quote(single.encode('utf8')) + '.gif"">'
-    line += '<br></div>'
+    if args.pinyin:
+        line = "<h2><b>" + word + "</b></h2>\t"
+        line += '"' + "<h2><b>" + pinyin + "</b></h2><br>"
+        line += word + '<br>'
+    else:
+        line = "<h2><b>" + pinyin + "</b></h2>\t"
+        line += '"' + word
+        line += '<div>'
+        unicode_word = ensure_unicode(word)
+        for single in unicode_word:
+            line += '<img src=""' + urllib.quote(single.encode('utf8')) + '.gif"">'
+        line += '<br></div>'
     line += '<div><a href=""http://bishun.shufaji.com/?char=' + \
         url_word + '"">笔顺</a><br></div>'
     line += '<div><a href=""' + baidu_url + '"">解释</a><br></div>"'
