@@ -15,6 +15,7 @@ parser.add_option("-o", "--out", action="store",
                   type="string", default="./out.txt")
 parser.add_option("-p", "--pinyin", action="store_true", default=False)
 parser.add_option("-d", "--debug", action="store_true", default=False)
+parser.add_option("--heteronym", action="store_true", default=False)
 args = parser.parse_args()[0]
 
 
@@ -29,6 +30,7 @@ class AndiPinyin:
         self.right = ""
         self.url_pinyin = ""
         self.heteronym_pinyin = ""
+        self.heteronym = False
 
         pinyin_array = pypinyin.pinyin(word, heteronym=True)
 
@@ -42,11 +44,27 @@ class AndiPinyin:
             print "Got heteronym and try to handle it", self.heteronym_pinyin
 
         time.sleep(1)
+        if args.debug:
+            print "Access url to get pinyin", url
         contents = urllib2.urlopen(url).read()
 
         right_list = []
         url_list = []
-        for url_pinyin in re.findall(r'\[(.+)\]', contents):
+
+        raw_pinyin_list = []
+        if len(word) > 1:
+            raw_pinyin_list = re.findall(r'\[(.+)\]', contents)
+        else:
+            contents = contents.split('<div class="pronounce" id="pinyin">')
+            if len(contents) == 2:
+                contents = contents[1]
+                contents = contents.split("</div>")
+                if len(contents) > 1:
+                    contents = contents[0]
+                    pattern = re.compile(r'\<b\>(.+)\<\/b\>')
+                    for p in pattern.findall(contents):
+                        raw_pinyin_list.append(p)
+        for url_pinyin in raw_pinyin_list:
             # Check one [ xxx xxx ] from url
             url_pinyin = url_pinyin.strip()
             url_pinyin = url_pinyin.split(" ")
@@ -54,7 +72,7 @@ class AndiPinyin:
                 continue
             got = False
             for up in url_pinyin:
-                string = "~!@#$%^&*()_+-*/<>,.[]\/"
+                string = "~!@#$%^&*()_+-*/<>,.[]\/0"
                 for i in string:
                     if i in up:
                         got = True
@@ -109,6 +127,8 @@ class AndiPinyin:
 
         self.right = "或".join(right_list)
         self.url_pinyin = "或".join(url_list)
+        if len(right_list) > 1 or len(url_list) > 1:
+            self.heteronym = True
 
     def pinyin_array_to_utf8(self, pinyin_array):
         self.right = ""
@@ -135,12 +155,54 @@ class AndiPinyin:
 
 
 if args.debug:
-    print "呈现"
+    print "顿"
     p = AndiPinyin(ensure_unicode(
-        "呈现"), 'https://hanyu.baidu.com/s?wd=' + urllib.quote("呈现") + '&amp;from=zici')
+        "顿"), 'https://hanyu.baidu.com/s?wd=' + urllib.quote("顿") + '&ptype=zici')
     print p.right
     print p.url_pinyin
     print p.heteronym_pinyin
+    print p.heteronym
+    print "---"
+
+    print "屹"
+    p = AndiPinyin(ensure_unicode(
+        "屹"), 'https://hanyu.baidu.com/s?wd=' + urllib.quote("屹") + '&ptype=zici')
+    print p.right
+    print p.url_pinyin
+    print p.heteronym_pinyin
+    print "---"
+
+    print "乾"
+    p = AndiPinyin(ensure_unicode(
+        "乾"), 'https://hanyu.baidu.com/s?wd=' + urllib.quote("乾") + '&ptype=zici')
+    print p.right
+    print p.url_pinyin
+    print p.heteronym_pinyin
+    print "---"
+
+    print "乾坤"
+    p = AndiPinyin(ensure_unicode(
+        "乾坤"), 'https://hanyu.baidu.com/s?wd=' + urllib.quote("乾坤") + '&ptype=zici')
+    print p.right
+    print p.url_pinyin
+    print p.heteronym_pinyin
+    print "---"
+
+    print "乾坤"
+    p = AndiPinyin(ensure_unicode(
+        "乾坤"), 'https://hanyu.baidu.com/s?wd=' + urllib.quote("乾坤") + '&amp;from=zici')
+    print p.right
+    print p.url_pinyin
+    print p.heteronym_pinyin
+    print "---"
+
+    print "呈现"
+    p = AndiPinyin(ensure_unicode(
+        "呈现"), 'https://hanyu.baidu.com/s?wd=' + urllib.quote("呈现") + '&ptype=zici')
+    print p.right
+    print p.url_pinyin
+    print p.heteronym_pinyin
+    print "---"
 
     print "长大"
     p = AndiPinyin(ensure_unicode(
@@ -148,6 +210,7 @@ if args.debug:
     print p.right
     print p.url_pinyin
     print p.heteronym_pinyin
+    print "---"
 
     print "冰激凌"
     p = AndiPinyin(ensure_unicode(
@@ -155,6 +218,7 @@ if args.debug:
     print p.right
     print p.url_pinyin
     print p.heteronym_pinyin
+    print "---"
 
     print "扑腾"
     p = AndiPinyin(ensure_unicode(
@@ -162,6 +226,7 @@ if args.debug:
     print p.right
     print p.url_pinyin
     print p.heteronym_pinyin
+    print "---"
 
     print "好主意"
     p = AndiPinyin(ensure_unicode(
@@ -179,27 +244,39 @@ print "从文件", args.word, "读入词语"
 print "写入文件", args.out
 
 out = open(args.out, "w")
-heteronym = False
+heteronym_words = []
+
 for word in open(args.word):
     word = word.strip()
     if word == "" or word[0] == '#':
         continue
     url_word = urllib.quote(word)
-    baidu_url = 'https://hanyu.baidu.com/s?wd=' + url_word + '&amp;from=zici'
+    baidu_url = 'https://hanyu.baidu.com/s?wd=' + url_word
+    if len(word) == 1:
+        baidu_url += '&ptype=zici'
+    else:
+        baidu_url += '&amp;from=zici'
     p = AndiPinyin(
         ensure_unicode(word), baidu_url)
 
     pinyin = ''
     if p.right == "":
-        heteronym = True
+        heteronym_words.append(word)
         if p.url_pinyin != "":
             pinyin = p.url_pinyin
             print "处理", word, "拼音是", pinyin, "可能有问题，注意检查。"
         else:
             pinyin = "多音字" + p.heteronym_pinyin
             print "处理", word, pinyin, "失败，请手动处理。"
+        if args.pinyin and not args.heteronym:
+            continue
     else:
         pinyin = p.right
+        if p.heteronym:
+            print word, "拼音是", pinyin, "是多音字注意检查。"
+            heteronym_words.append(word)
+            if args.pinyin and not args.heteronym:
+                continue
 
     if args.pinyin:
         line = "<h2><b>" + word + "</b></h2>\t"
@@ -211,7 +288,8 @@ for word in open(args.word):
         line += '<div>'
         unicode_word = ensure_unicode(word)
         for single in unicode_word:
-            line += '<img src=""' + urllib.quote(single.encode('utf8')) + '.gif"">'
+            line += '<img src=""' + \
+                urllib.quote(single.encode('utf8')) + '.gif"">'
         line += '<br></div>'
     line += '<div><a href=""http://bishun.shufaji.com/?char=' + \
         url_word + '"">笔顺</a><br></div>'
@@ -221,5 +299,8 @@ for word in open(args.word):
     out.write("\n")
 out.close()
 
-if heteronym:
+if len(heteronym_words) > 0:
     print '有多音字请注意搜索多音字并替换成相应拼音'
+    for w in heteronym_words:
+        print w
+
