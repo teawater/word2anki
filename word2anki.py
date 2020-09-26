@@ -246,54 +246,94 @@ print "写入文件", args.out
 out = open(args.out, "w")
 heteronym_words = []
 
+
+class AndiWord:
+    def __init__(self, word):
+        self.word = word
+        self.heteronym = False
+
+        self.url_word = urllib.quote(word)
+        self.baidu_url = 'https://hanyu.baidu.com/s?wd=' + self.url_word
+        if len(word) == 1:
+            self.baidu_url += '&ptype=zici'
+        else:
+            self.baidu_url += '&amp;from=zici'
+        p = AndiPinyin(ensure_unicode(word), self.baidu_url)
+
+        self.pinyin = ''
+        if p.right == "":
+            self.heteronym = True
+            if p.url_pinyin != "":
+                self.pinyin = p.url_pinyin
+                print "处理", self.word, "拼音是", self.pinyin, "可能有问题，注意检查。"
+            else:
+                self.pinyin = "多音字" + p.heteronym_pinyin
+                print "处理", self.word, self.pinyin, "失败，请手动处理。"
+            
+        else:
+            self.pinyin = p.right
+            if p.heteronym:
+                print word, "拼音是", self.pinyin, "是多音字注意检查。"
+                self.heteronym = True
+
+
 for word in open(args.word):
     word = word.strip()
     if word == "" or word[0] == '#':
         continue
-    url_word = urllib.quote(word)
-    baidu_url = 'https://hanyu.baidu.com/s?wd=' + url_word
-    if len(word) == 1:
-        baidu_url += '&ptype=zici'
-    else:
-        baidu_url += '&amp;from=zici'
-    p = AndiPinyin(
-        ensure_unicode(word), baidu_url)
 
-    pinyin = ''
-    if p.right == "":
-        heteronym_words.append(word)
-        if p.url_pinyin != "":
-            pinyin = p.url_pinyin
-            print "处理", word, "拼音是", pinyin, "可能有问题，注意检查。"
-        else:
-            pinyin = "多音字" + p.heteronym_pinyin
-            print "处理", word, pinyin, "失败，请手动处理。"
-        if args.pinyin and not args.heteronym:
+    words = []
+    for word in word.split(' '):
+        word = word.strip()
+        if word == "":
             continue
-    else:
-        pinyin = p.right
-        if p.heteronym:
-            print word, "拼音是", pinyin, "是多音字注意检查。"
-            heteronym_words.append(word)
+
+        w = AndiWord(word)
+
+        if w.heteronym:
+            heteronym_words.append(w.word)
             if args.pinyin and not args.heteronym:
                 continue
+        words.append(w)
 
+    line = ""
     if args.pinyin:
-        line = "<h2><b>" + word + "</b></h2>\t"
-        line += '"' + "<h2><b>" + pinyin + "</b></h2><br>"
-        line += word + '<br>'
+        line += "<h2><b>"
+        is_first = True
+        for w in words:
+            if is_first:
+                is_first = False
+            else:
+                line += " "
+            line += w.word
+        line += "</b></h2>\t"
+        line += '"'
+        for w in words:
+            line += "<h2><b>" + w.pinyin + " " + w.word + "</b></h2><br>"
     else:
-        line = "<h2><b>" + pinyin + "</b></h2>\t"
-        line += '"' + word
-        line += '<div>'
-        unicode_word = ensure_unicode(word)
-        for single in unicode_word:
-            line += '<img src=""' + \
-                urllib.quote(single.encode('utf8')) + '.gif"">'
-        line += '<br></div>'
-    line += '<div><a href=""http://bishun.shufaji.com/?char=' + \
-        url_word + '"">笔顺</a><br></div>'
-    line += '<div><a href=""' + baidu_url + '"">解释</a><br></div>"'
+        line += "<h2><b>"
+        is_first = True
+        for w in words:
+            if is_first:
+                is_first = False
+            else:
+                line += " | "
+            line += w.pinyin
+        line += "</b></h2>\t"
+        line += '"'
+        for w in words:
+            line += w.word
+            line += '<div>'
+            unicode_word = ensure_unicode(w.word)
+            for single in unicode_word:
+                line += '<img src=""' + \
+                    urllib.quote(single.encode('utf8')) + '.gif"">'
+            line += '<br></div>'
+    for w in words:
+        line += '<div><a href=""http://bishun.shufaji.com/?char=' + \
+            w.url_word + '"">' + w.word + '笔顺</a><br></div>'
+        line += '<div><a href=""' + w.baidu_url + '"">' + w.word + '解释</a><br></div>'
+    line += '"'
 
     out.write(line)
     out.write("\n")
@@ -303,4 +343,3 @@ if len(heteronym_words) > 0:
     print '有多音字请注意搜索多音字并替换成相应拼音'
     for w in heteronym_words:
         print w
-
