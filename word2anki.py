@@ -296,6 +296,9 @@ for word in open(args.word):
                 continue
         words.append(w)
 
+    if len(words) == 0:
+        continue
+
     line = ""
     if args.pinyin:
         line += "<h2><b>"
