@@ -14,6 +14,8 @@ parser.add_option("-w", "--word", dest="word",
                   help="word file")
 parser.add_option("-o", "--out", action="store",
                   type="string", default="./out")
+parser.add_option("-d", "--old", action="store",
+                  type="string", default="./old")
 parser.add_option("-c", "--cn", action="store_true", default=False)
 args = parser.parse_args()[0]
 
@@ -21,6 +23,9 @@ if args.word == None:
     parser.error("option --word must set")
 if not os.path.exists(args.out):
     os.makedirs(args.out)
+if not os.path.exists(args.old):
+    print args.old + " is not exist"
+    args.old = ""
 elif os.path.isfile(args.out):
     parser.error("option --out should set a directory")
 
@@ -46,6 +51,10 @@ for line in open(args.word):
 
         if os.path.exists(pic_dir):
             print word, "的文件已经存在"
+            continue
+
+        if args.old != "" and os.path.exists(os.path.join(args.old, url_word + ".gif")):
+            print word, "的文件已经存在" + args.old
             continue
 
         try:
