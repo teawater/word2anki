@@ -14,6 +14,7 @@ parser.add_option("-w", "--word", dest="word",
                   help="word file")
 parser.add_option("-o", "--out", action="store",
                   type="string", default="./out")
+parser.add_option("-c", "--cn", action="store_true", default=False)
 args = parser.parse_args()[0]
 
 if args.word == None:
@@ -48,12 +49,18 @@ for line in open(args.word):
             continue
 
         try:
-            contents = urllib2.urlopen("http://bishun.strokeorder.info/mandarin.php?q="+url_word).read()
+            if args.cn:
+                contents = urllib2.urlopen("http://bishun.strokeorder.info/mandarin.php?q="+url_word).read()
+            else:
+                contents = urllib2.urlopen("http://www.strokeorder.info/mandarin.php?q="+url_word).read()
         except:
             fail_words.append((word, url_word))
             print word, "下载失败"
             continue
-        searchObj = re.search(r'\<img src=\"(http:\/\/bishun\.strokeorder\.info\/characters\/\d+\.gif)\" alt\=\"' + utf8_word + r'的笔顺\"\>', contents)
+        if args.cn:
+            searchObj = re.search(r'\<img src=\"(http:\/\/bishun\.strokeorder\.info\/characters\/\d+\.gif)\" alt\=\"' + utf8_word + r'的笔顺\"\>', contents)
+        else:
+            searchObj = re.search(r'\<img src=\"(http:\/\/bishun\.strokeorder\.info\/characters\/\d+\.gif)\" alt\=\"stroke order animation of ' + utf8_word + r'\"\>', contents)
         if searchObj == None:
             fail_words.append((word, url_word))
             print "没有找到", word, "的图片"
