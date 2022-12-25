@@ -241,9 +241,9 @@ if args.word == None:
     parser.error("option --word must set")
 
 print "从文件", args.word, "读入词语"
-print "写入文件", args.out
+#print "写入文件", args.out
 
-out = open(args.out, "w")
+#out = open(args.out, "w")
 heteronym_words = []
 
 
@@ -276,10 +276,17 @@ class AndiWord:
                 print word, "拼音是", self.pinyin, "是多音字注意检查。"
                 self.heteronym = True
 
-
+out = None
 for word in open(args.word):
     word = word.strip()
-    if word == "" or word[0] == '#':
+    # First charactor check
+    if word == "":
+        continue
+    if word[0] == '#':
+        if out != None:
+            out.close()
+        out = open(word, "w")
+        print "写入文件", word
         continue
 
     words = []
@@ -338,9 +345,13 @@ for word in open(args.word):
         line += '<div><a href=""' + w.baidu_url + '"">' + w.word + '解释</a><br></div>'
     line += '"'
 
+    if out == None:
+        out = open(args.out, "w")
+        print "写入文件", args.out
     out.write(line)
     out.write("\n")
-out.close()
+if out != None:
+    out.close()
 
 if len(heteronym_words) > 0:
     print '有多音字请注意搜索多音字并替换成相应拼音'
