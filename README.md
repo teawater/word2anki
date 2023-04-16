@@ -1,3 +1,8 @@
+# 输出识字库
+```
+python word2anki.py -p --heteronym --word ../tmp/1.txt
+```
+# misc
 ```
 pip install pypinyin
 ```
