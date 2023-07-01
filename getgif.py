@@ -47,13 +47,13 @@ for line in open(args.word):
         print "取得", word, "的图片"
         utf8_word = word.encode('utf8')
         url_word = urllib.quote(utf8_word)
-        pic_dir = os.path.join(args.out, url_word + ".gif")
+        pic_dir = os.path.join(args.out, word + ".gif")
 
         if os.path.exists(pic_dir):
             print word, "的文件已经存在"
             continue
 
-        if args.old != "" and os.path.exists(os.path.join(args.old, url_word + ".gif")):
+        if args.old != "" and os.path.exists(os.path.join(args.old, word + ".gif")):
             print word, "的文件已经存在" + args.old
             continue
 
