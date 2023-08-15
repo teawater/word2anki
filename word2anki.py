@@ -285,6 +285,7 @@ for word in open(args.word):
     if word[0] == '#':
         if out != None:
             out.close()
+        word = word[1:]+".txt"
         out = open(word, "w")
         print "写入文件", word
         continue
