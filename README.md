@@ -6,7 +6,7 @@ python word2anki.py -p --heteronym --word ../tmp/1.txt
 ```
 python word2anki.py --heteronym --word ../tmp/1.txt
 ```
-# 输出拼音
+# 输出笔顺文件
 ```
 python getgif.py -w ../tmp/1.txt -d ./old/
 ```
