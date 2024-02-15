@@ -37,6 +37,47 @@ def ensure_unicode(v):
         v = v.decode('utf8')
     return unicode(v)
 
+def download_file(url, filename):
+    try:
+        local_filename, headers = urllib.urlretrieve(url, filename)
+        if headers.gettype() != 'image/gif':
+            return False
+
+        content_length = headers.get('Content-Length')
+        if content_length:
+            local_size = os.path.getsize(local_filename)
+            if int(content_length) != local_size:
+                return False
+        return True
+    except Exception as e:
+        print("Error occurred while downloading the file: {}".format(e))
+        return False
+
+
+def get_from_strokeorder(word, pic_dir):
+    utf8_word = word.encode('utf8')
+    url_word = urllib.quote(utf8_word)
+
+    try:
+        if args.cn:
+            contents = urllib2.urlopen("http://bishun.strokeorder.info/mandarin.php?q="+url_word).read()
+        else:
+            contents = urllib2.urlopen("http://www.strokeorder.info/mandarin.php?q="+url_word).read()
+    except:
+        return False
+    if args.cn:
+        searchObj = re.search(r'\<img src=\"(http:\/\/bishun\.strokeorder\.info\/characters\/\d+\.gif)\" alt\=\"' + utf8_word + r'的笔顺\"\>', contents)
+    else:
+        searchObj = re.search(r'\<img src=\"(http:\/\/bishun\.strokeorder\.info\/characters\/\d+\.gif)\" alt\=\"stroke order animation of ' + utf8_word + r'\"\>', contents)
+    if searchObj == None:
+        return False
+    pic_url = searchObj.group(1)
+    return download_file(pic_url, pic_dir)
+
+def get_from_zdic(word, pic_dir):
+    unicode_word = hex(ord(word))[2:].upper().rstrip('L').zfill(4)
+    return download_file("https://img.zdic.net/kai/jbh/" + unicode_word + ".gif", pic_dir)
+
 fail_words = []
 for line in open(args.word):
     line = line.strip()
@@ -44,9 +85,8 @@ for line in open(args.word):
         continue
     line = ensure_unicode(line)
     for word in line:
-        print "取得", word, "的图片"
-        utf8_word = word.encode('utf8')
-        url_word = urllib.quote(utf8_word)
+        print "尝试取得", word, "的图片"
+        unicode_word = hex(ord(word))[2:].upper().rstrip('L').zfill(4)
         pic_dir = os.path.join(args.out, word + ".gif")
 
         if os.path.exists(pic_dir):
@@ -57,29 +97,16 @@ for line in open(args.word):
             print word, "的文件已经存在" + args.old
             continue
 
-        try:
-            if args.cn:
-                contents = urllib2.urlopen("http://bishun.strokeorder.info/mandarin.php?q="+url_word).read()
-            else:
-                contents = urllib2.urlopen("http://www.strokeorder.info/mandarin.php?q="+url_word).read()
-        except:
-            fail_words.append((word, url_word))
-            print word, "下载失败"
-            continue
-        if args.cn:
-            searchObj = re.search(r'\<img src=\"(http:\/\/bishun\.strokeorder\.info\/characters\/\d+\.gif)\" alt\=\"' + utf8_word + r'的笔顺\"\>', contents)
-        else:
-            searchObj = re.search(r'\<img src=\"(http:\/\/bishun\.strokeorder\.info\/characters\/\d+\.gif)\" alt\=\"stroke order animation of ' + utf8_word + r'\"\>', contents)
-        if searchObj == None:
-            fail_words.append((word, url_word))
-            print "没有找到", word, "的图片"
-            continue
-        pic_url = searchObj.group(1)
-        urllib.urlretrieve(pic_url, pic_dir)
+        if not get_from_strokeorder(word, pic_dir):
+            if not get_from_zdic(word, pic_dir):
+                fail_words.append(word)
+                print word, "下载失败"
+                continue
+
         print pic_dir
         time.sleep(random.randint(1,3))
 
 if len(fail_words) > 0:
     print "这些字下载失败"
     for w in fail_words:
-        print w[0], w[1]
+        print w
